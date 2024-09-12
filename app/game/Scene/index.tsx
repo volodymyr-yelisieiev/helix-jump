@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 
 import { Canvas } from "@react-three/fiber";
 import { Physics } from "@react-three/rapier";
@@ -9,8 +9,8 @@ import CustomCamera from "./CustomCamera";
 
 import { useAppContext } from "@/context/AppContext";
 
-const spaceBetween = 15;
 const range = 2;
+const spaceBetween = 15;
 
 export default function Scene() {
   const { isPaused, score } = useAppContext();
@@ -41,20 +41,23 @@ export default function Scene() {
       }}
     >
       <CustomCamera />
-      <ambientLight intensity={0.5} />
-      <spotLight
-        castShadow
-        angle={Math.PI / 6}
-        intensity={1}
-        position={[-10, 10, -10]}
-      />
-      <directionalLight castShadow intensity={0.5} position={[10, 20, 10]} />
-      <Physics paused={isPaused} debug>
-        {helices.map(({ key, position }) => {
-          return <Helix key={key} index={key} position={position} />;
-        })}
-        <Ball />
-      </Physics>
+      <ambientLight intensity={0.6} />
+      <directionalLight intensity={0.6} position={[10, 20, 10]} />
+      <Suspense>
+        <Physics paused={isPaused}>
+          {helices.map(({ key, position }) => {
+            return (
+              <Helix
+                key={key}
+                index={key}
+                position={position}
+                spaceBetween={spaceBetween}
+              />
+            );
+          })}
+          <Ball />
+        </Physics>
+      </Suspense>
       <SoftShadows />
     </Canvas>
   );

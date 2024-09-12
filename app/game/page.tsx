@@ -6,6 +6,18 @@ import Spinner from "@/components/Loader";
 import { useAppContext } from "@/context/AppContext";
 import dynamic from "next/dynamic";
 
+import { MaterialNode } from "@react-three/fiber";
+import { MeshLineMaterial } from "meshline";
+import { extend } from "@react-three/fiber";
+
+extend({ MeshLineMaterial });
+
+declare module "@react-three/fiber" {
+  interface ThreeElements {
+    meshLineMaterial: MaterialNode<MeshLineMaterial, typeof MeshLineMaterial>;
+  }
+}
+
 const Scene = dynamic(() => import("./Scene"), {
   loading: () => <Spinner />,
   ssr: false,

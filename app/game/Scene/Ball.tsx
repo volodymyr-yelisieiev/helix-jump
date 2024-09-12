@@ -9,23 +9,21 @@ export default function Ball() {
       collisionGroups={interactionGroups(1, 0)}
       sensor={true}
       position={[0, 10, 7.5]}
-      mass={16}
-      gravityScale={16}
+      mass={8}
+      gravityScale={8}
     >
       <Trail
         width={16}
-        color="white"
-        length={8}
+        length={4}
         decay={0.5}
-        local={false}
-        stride={0}
-        interval={1}
         attenuation={(width) => width * 0.75}
       >
         <mesh>
           <sphereGeometry args={[1, 32, 32]} />
           <meshLambertMaterial color="white" />
         </mesh>
+
+        <meshLineMaterial color={"white"} transparent={true} opacity={0.5} />
       </Trail>
     </RigidBody>
   );

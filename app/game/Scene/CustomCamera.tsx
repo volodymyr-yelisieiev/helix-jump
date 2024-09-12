@@ -6,7 +6,7 @@ import { useAppContext } from "@/context/AppContext";
 export default function CustomCamera() {
   const { score } = useAppContext();
   const { camera } = useThree();
-  const targetY = useRef(10);
+  const targetY = useRef(15);
 
   useFrame(() => {
     targetY.current = 15 - 15 * score;
