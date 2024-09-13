@@ -23,9 +23,10 @@ export default function Scene() {
     const newHelices = [];
     for (let i = score - range; i <= score + range; i++) {
       if (i >= 0) {
+        const position: [number, number, number] = [0, -i * spaceBetween, 0];
         newHelices.push({
           key: i,
-          position: [0, -i * spaceBetween, 0] as [number, number, number],
+          position: position,
         });
       }
     }

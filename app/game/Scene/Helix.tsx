@@ -40,7 +40,30 @@ export default function Helix({
     rotation,
   } = useAppContext();
 
-  const sectorsList = useMemo(() => generateSectors(index), [index]);
+  const sectorsList = useMemo(
+    () =>
+      generateSectors({
+        platform: {
+          minSize: Math.PI / 4,
+          maxSize: Math.PI / 2,
+          minCount: 1,
+          maxCount: 3,
+        },
+        loss: {
+          minSize: Math.PI / 16,
+          maxSize: Math.PI / 4,
+          minCount: 1,
+          maxCount: 2,
+        },
+        hole: {
+          minSize: Math.PI / 6,
+          maxSize: Math.PI / 4,
+          minCount: 1,
+          maxCount: 2,
+        },
+      }),
+    []
+  );
 
   const sectors = sectorsList.map(([startAngle, endAngle, type], i) => {
     const rigidBody = useRef<RapierRigidBody>(null);
