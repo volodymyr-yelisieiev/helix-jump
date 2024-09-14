@@ -31,10 +31,10 @@ type SectorType = "platform" | "loss" | "hole";
 type Sector = [number, number, SectorType];
 
 interface SectorConfig {
-  minSize: number; // minimum sector size in radians
-  maxSize: number; // maximum sector size in radians
-  minCount: number; // minimum amount of this type in one platform
-  maxCount: number; // maximum amount of this type in one platform
+  minSize: number;
+  maxSize: number;
+  minCount: number;
+  maxCount: number;
 }
 
 interface PlatformConfig {
@@ -43,7 +43,22 @@ interface PlatformConfig {
   hole: SectorConfig;
 }
 
-export function generateSectors(config: PlatformConfig): Sector[] {
+export function generateSectors(
+  index: number,
+  config: PlatformConfig
+): Sector[] {
+  if (index === 0) {
+    return [
+      [0, (2 * Math.PI) / 3 - Math.PI / 12, "platform"],
+      [
+        (2 * Math.PI) / 3 - Math.PI / 12,
+        (4 * Math.PI) / 3 - Math.PI / 6,
+        "platform",
+      ],
+      [(4 * Math.PI) / 3 - Math.PI / 6, 2 * Math.PI - Math.PI / 4, "platform"],
+      [2 * Math.PI - Math.PI / 4, 2 * Math.PI, "hole"],
+    ];
+  }
   const totalAngle = 2 * Math.PI;
   let currentAngle = 0;
 
@@ -67,7 +82,6 @@ export function generateSectors(config: PlatformConfig): Sector[] {
     return sectorArray;
   };
 
-  // Shuffle an array using Fisher-Yates algorithm
   const shuffleArray = <T>(array: T[]): T[] => {
     for (let i = array.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -76,11 +90,9 @@ export function generateSectors(config: PlatformConfig): Sector[] {
     return array;
   };
 
-  // Ensure no two adjacent sectors have the same type
   const ensureNoAdjacentSectors = (sectors: Sector[]): Sector[] => {
     for (let i = 1; i < sectors.length; i++) {
       if (sectors[i][2] === sectors[i - 1][2]) {
-        // Find a non-adjacent sector with a different type
         for (let j = i + 1; j < sectors.length; j++) {
           if (sectors[j][2] !== sectors[i][2]) {
             [sectors[i], sectors[j]] = [sectors[j], sectors[i]];
@@ -92,64 +104,32 @@ export function generateSectors(config: PlatformConfig): Sector[] {
     return sectors;
   };
 
-  // Randomly generate sectors for each type
   const platformCount = randomizeSectorCount(config.platform);
   const lossCount = randomizeSectorCount(config.loss);
   const holeCount = randomizeSectorCount(config.hole);
 
-  // Create sectors for each type
   const platformSectors = createSectors("platform", platformCount);
   const lossSectors = createSectors("loss", lossCount);
   const holeSectors = createSectors("hole", holeCount);
 
-  // Combine all sectors into one array
   const allSectors = [...platformSectors, ...lossSectors, ...holeSectors];
 
-  // Shuffle the sectors
   const shuffledSectors = shuffleArray(allSectors);
 
-  // Ensure no two adjacent sectors have the same type
   const validSectors = ensureNoAdjacentSectors(shuffledSectors);
 
-  // Assign angles to the shuffled sectors
   validSectors.forEach((sector) => {
     const sectorSize = sector[1];
     const nextAngle = Math.min(currentAngle + sectorSize, totalAngle);
-    sector[0] = currentAngle; // Set start angle
-    sector[1] = nextAngle; // Set end angle
+    sector[0] = currentAngle;
+    sector[1] = nextAngle;
     currentAngle = nextAngle;
-    if (currentAngle >= totalAngle) return; // Stop if angle exceeds 2*PI
+    if (currentAngle >= totalAngle) return;
   });
 
-  // If there is any remaining angle, fill it with a "platform" sector
   if (currentAngle < totalAngle) {
     validSectors.push([currentAngle, totalAngle, "platform"]);
   }
 
   return validSectors;
 }
-
-// Example usage:
-const platformConfig: PlatformConfig = {
-  platform: {
-    minSize: Math.PI / 8,
-    maxSize: Math.PI / 4,
-    minCount: 1,
-    maxCount: 3,
-  },
-  loss: {
-    minSize: Math.PI / 16,
-    maxSize: Math.PI / 8,
-    minCount: 1,
-    maxCount: 2,
-  },
-  hole: {
-    minSize: Math.PI / 16,
-    maxSize: Math.PI / 4,
-    minCount: 1,
-    maxCount: 2,
-  },
-};
-
-const sectors = generateSectors(platformConfig);
-console.log(sectors);

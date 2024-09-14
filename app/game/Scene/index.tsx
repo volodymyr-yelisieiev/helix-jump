@@ -9,7 +9,6 @@ import CustomCamera from "./CustomCamera";
 
 import { useAppContext } from "@/context/AppContext";
 
-const range = 2;
 const spaceBetween = 15;
 
 export default function Scene() {
@@ -21,7 +20,7 @@ export default function Scene() {
 
   useEffect(() => {
     const newHelices = [];
-    for (let i = score - range; i <= score + range; i++) {
+    for (let i = score - 1; i <= score + 3; i++) {
       if (i >= 0) {
         const position: [number, number, number] = [0, -i * spaceBetween, 0];
         newHelices.push({

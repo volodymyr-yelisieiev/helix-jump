@@ -1,11 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { Cylinder } from "@react-three/drei";
-
 import { useAppContext } from "@/context/AppContext";
-import { generateSectors } from "@/utils/geometry_utils";
-import { createSectorGeometry } from "@/utils/geometry_utils";
-
+import { generateSectors, createSectorGeometry } from "@/utils/geometry_utils";
 import {
+  CollisionTarget,
   interactionGroups,
   RapierRigidBody,
   RigidBody,
@@ -13,7 +11,7 @@ import {
 import { useFrame } from "@react-three/fiber";
 
 const platformRadius = 10;
-const platformWidth = 1;
+const platformWidth = 2;
 const platformColor = "#67c1f3";
 const lossColor = "#34adef";
 const poleRadius = 5;
@@ -42,7 +40,7 @@ export default function Helix({
 
   const sectorsList = useMemo(
     () =>
-      generateSectors({
+      generateSectors(index, {
         platform: {
           minSize: Math.PI / 4,
           maxSize: Math.PI / 2,
@@ -62,102 +60,14 @@ export default function Helix({
           maxCount: 2,
         },
       }),
-    []
+    [index]
   );
 
-  const sectors = sectorsList.map(([startAngle, endAngle, type], i) => {
-    const rigidBody = useRef<RapierRigidBody>(null);
-    const impulseApplied = useRef(false);
-
-    const color =
-      type === "loss"
-        ? lossColor
-        : type === "platform"
-        ? platformColor
-        : "transparent";
-    const isVisible = type !== "hole";
-
-    if (numJumps === 3) {
-      openModal({ text: "You have jumped on the same platform 3 times!" });
+  useEffect(() => {
+    if (numJumps === 5) {
+      openModal({ text: "You have jumped on the same platform 5 times!" });
     }
-
-    const [currentRotation, setCurrentRotation] = useState<
-      [number, number, number]
-    >([0, 0, 0]);
-
-    useFrame(() => {
-      if (index >= score) {
-        setCurrentRotation(rotation);
-      }
-    });
-
-    useEffect(() => {
-      if (index < score && !impulseApplied.current) {
-        rigidBody.current?.setLinvel(
-          {
-            x: Math.cos((startAngle + endAngle) / 2 + currentRotation[1]) * 25,
-            y: 0,
-            z: -Math.sin((startAngle + endAngle) / 2 + currentRotation[1]) * 25,
-          },
-          true
-        );
-        impulseApplied.current = true;
-      }
-    }, [score]);
-
-    return (
-      <RigidBody
-        key={i}
-        ref={rigidBody}
-        name="sector"
-        colliders="trimesh"
-        collisionGroups={interactionGroups(0, 1)}
-        type={index >= score ? "fixed" : "dynamic"}
-        mass={8}
-        gravityScale={8}
-        includeInvisible={true}
-        onIntersectionEnter={(other) => {
-          if (index >= preScore && other.rigidBodyObject?.name === "ball") {
-            if (type === "platform") {
-              other.rigidBody?.setLinvel({ x: 0, y: 32, z: 0 }, true);
-              if (index !== 0) {
-                setNumJumps(numJumps + 1);
-              }
-            }
-            if (type === "loss") {
-              openModal({ text: "You have touched the Loss Sector!" });
-            }
-            if (type === "hole") {
-              setPreScore(preScore + 1);
-              setNumJumps(0);
-            }
-          }
-        }}
-        onIntersectionExit={(other) => {
-          if (index >= score && other.rigidBodyObject?.name === "ball") {
-            if (type === "hole") {
-              setScore(score + 1);
-            }
-          }
-        }}
-        rotation={currentRotation}
-      >
-        <mesh
-          geometry={createSectorGeometry(
-            platformRadius,
-            platformWidth,
-            startAngle,
-            endAngle,
-            numPoints
-          )}
-          rotation={[-Math.PI / 2, 0, 0]}
-          visible={isVisible}
-        >
-          <meshLambertMaterial color={color} />
-        </mesh>
-      </RigidBody>
-    );
-  });
+  }, [numJumps, openModal]);
 
   return (
     <group position={position}>
@@ -168,7 +78,132 @@ export default function Helix({
       >
         <meshLambertMaterial color={poleColor} />
       </Cylinder>
-      <>{sectors}</>
+      {sectorsList.map(([startAngle, endAngle, type], i) => (
+        <Sector
+          key={i}
+          index={index}
+          startAngle={startAngle}
+          endAngle={endAngle}
+          type={type}
+          rotation={rotation}
+          score={score}
+          preScore={preScore}
+          numJumps={numJumps}
+          setNumJumps={setNumJumps}
+          setPreScore={setPreScore}
+          setScore={setScore}
+          openModal={openModal}
+        />
+      ))}
     </group>
+  );
+}
+
+function Sector({
+  index,
+  startAngle,
+  endAngle,
+  type,
+  rotation,
+  score,
+  preScore,
+  numJumps,
+  setNumJumps,
+  setPreScore,
+  setScore,
+  openModal,
+}: {
+  index: number;
+  startAngle: number;
+  endAngle: number;
+  type: string;
+  rotation: [number, number, number];
+  score: number;
+  preScore: number;
+  numJumps: number;
+  setNumJumps: (n: number) => void;
+  setPreScore: (n: number) => void;
+  setScore: (n: number) => void;
+  openModal: (obj: { text: string }) => void;
+}) {
+  const rigidBody = useRef<RapierRigidBody>(null);
+  const impulseApplied = useRef(false);
+  const [currentRotation, setCurrentRotation] = useState<
+    [number, number, number]
+  >([0, 0, 0]);
+
+  const color =
+    type === "loss"
+      ? lossColor
+      : type === "platform"
+      ? platformColor
+      : "transparent";
+  const isVisible = type !== "hole";
+
+  useFrame(() => {
+    if (index >= score) {
+      setCurrentRotation(rotation);
+    }
+  });
+
+  useEffect(() => {
+    if (index < score && !impulseApplied.current) {
+      rigidBody.current?.setLinvel(
+        {
+          x: Math.cos((startAngle + endAngle) / 2 + currentRotation[1]) * 25,
+          y: 0,
+          z: -Math.sin((startAngle + endAngle) / 2 + currentRotation[1]) * 25,
+        },
+        true
+      );
+      impulseApplied.current = true;
+    }
+  }, [score, index, startAngle, endAngle, currentRotation]);
+
+  const handleIntersectionEnter = useCallback(
+    (other: CollisionTarget) => {
+      if (index >= score && other.rigidBodyObject?.name === "ball") {
+        if (type === "platform") {
+          other.rigidBody?.setLinvel({ x: 0, y: 32, z: 0 }, true);
+          if (index !== 0) setNumJumps(numJumps + 1);
+        } else if (type === "loss") {
+          openModal({ text: "You have touched the Loss Sector!" });
+        } else if (type === "hole") {
+          setScore(score + 1);
+          setNumJumps(0);
+        }
+      }
+    },
+    [index, preScore, setPreScore, numJumps, setNumJumps, openModal]
+  );
+
+  return (
+    <RigidBody
+      ref={rigidBody}
+      name="sector"
+      colliders="trimesh"
+      collisionGroups={interactionGroups(0, 1)}
+      type={index >= score ? "fixed" : "dynamic"}
+      mass={8}
+      scale={type === "hole" ? [1, 0.1, 1] : 1}
+      gravityScale={8}
+      includeInvisible={true}
+      onIntersectionEnter={handleIntersectionEnter}
+      rotation={currentRotation}
+    >
+      <mesh
+        geometry={createSectorGeometry(
+          platformRadius,
+          platformWidth,
+          startAngle,
+          endAngle,
+          numPoints
+        )}
+        rotation={[-Math.PI / 2, 0, 0]}
+        visible={isVisible}
+      >
+        <meshLambertMaterial color={color} />
+      </mesh>
+    </RigidBody>
   );
 }
