@@ -1,10 +1,12 @@
 import React, {
   createContext,
   Dispatch,
+  MutableRefObject,
   ReactNode,
   SetStateAction,
   useContext,
 } from "react";
+import { RapierRigidBody } from "@react-three/rapier";
 
 interface AppContextType {
   isModalOpen: boolean;
@@ -19,7 +21,10 @@ interface AppContextType {
   setScore: Dispatch<SetStateAction<number>>;
   numJumps: number;
   setNumJumps: Dispatch<SetStateAction<number>>;
+  streak: number;
+  setStreak: Dispatch<SetStateAction<number>>;
   rotation: [number, number, number];
+  ballRef: MutableRefObject<RapierRigidBody | null>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -38,7 +43,10 @@ interface AppProviderProps {
   setScore: Dispatch<SetStateAction<number>>;
   numJumps: number;
   setNumJumps: Dispatch<SetStateAction<number>>;
+  streak: number;
+  setStreak: Dispatch<SetStateAction<number>>;
   rotation: [number, number, number];
+  ballRef: MutableRefObject<RapierRigidBody | null>;
 }
 
 export const AppProvider: React.FC<AppProviderProps> = ({
@@ -55,7 +63,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({
   setScore,
   numJumps,
   setNumJumps,
+  streak,
+  setStreak,
   rotation,
+  ballRef,
 }) => {
   return (
     <AppContext.Provider
@@ -72,7 +83,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({
         setScore,
         numJumps,
         setNumJumps,
+        streak,
+        setStreak,
         rotation,
+        ballRef,
       }}
     >
       {children}

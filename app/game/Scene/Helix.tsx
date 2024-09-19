@@ -27,16 +27,7 @@ export default function Helix({
   position: [number, number, number];
   spaceBetween: number;
 }) {
-  const {
-    openModal,
-    preScore,
-    setPreScore,
-    score,
-    setScore,
-    numJumps,
-    setNumJumps,
-    rotation,
-  } = useAppContext();
+  const { openModal, numJumps, rotation } = useAppContext();
 
   const sectorsList = useMemo(
     () =>
@@ -85,14 +76,6 @@ export default function Helix({
           startAngle={startAngle}
           endAngle={endAngle}
           type={type}
-          rotation={rotation}
-          score={score}
-          preScore={preScore}
-          numJumps={numJumps}
-          setNumJumps={setNumJumps}
-          setPreScore={setPreScore}
-          setScore={setScore}
-          openModal={openModal}
         />
       ))}
     </group>
@@ -104,29 +87,26 @@ function Sector({
   startAngle,
   endAngle,
   type,
-  rotation,
-  score,
-  preScore,
-  numJumps,
-  setNumJumps,
-  setPreScore,
-  setScore,
-  openModal,
 }: {
   index: number;
   startAngle: number;
   endAngle: number;
   type: string;
-  rotation: [number, number, number];
-  score: number;
-  preScore: number;
-  numJumps: number;
-  setNumJumps: (n: number) => void;
-  setPreScore: (n: number) => void;
-  setScore: (n: number) => void;
-  openModal: (obj: { text: string }) => void;
 }) {
-  const rigidBody = useRef<RapierRigidBody>(null);
+  const {
+    openModal,
+    preScore,
+    setPreScore,
+    score,
+    setScore,
+    numJumps,
+    setNumJumps,
+    streak,
+    setStreak,
+    rotation,
+  } = useAppContext();
+
+  const sectorRef = useRef<RapierRigidBody>(null);
   const impulseApplied = useRef(false);
   const [currentRotation, setCurrentRotation] = useState<
     [number, number, number]
@@ -148,7 +128,7 @@ function Sector({
 
   useEffect(() => {
     if (index < score && !impulseApplied.current) {
-      rigidBody.current?.setLinvel(
+      sectorRef.current?.setLinvel(
         {
           x: Math.cos((startAngle + endAngle) / 2 + currentRotation[1]) * 25,
           y: 0,
@@ -166,9 +146,21 @@ function Sector({
         if (type === "platform") {
           other.rigidBody?.setLinvel({ x: 0, y: 32, z: 0 }, true);
           if (index !== 0) setNumJumps(numJumps + 1);
+          if (streak >= 3) {
+            setScore(score + 1);
+          }
+          setStreak(0);
         } else if (type === "loss") {
-          openModal({ text: "You have touched the Loss Sector!" });
+          if (streak >= 3) {
+            other.rigidBody?.setLinvel({ x: 0, y: 32, z: 0 }, true);
+            setNumJumps(numJumps + 1);
+            setScore(score + 1);
+            setStreak(0);
+          } else openModal({ text: "You have touched the Loss Sector!" });
         } else if (type === "hole") {
+          if (streak === 0 || numJumps === 0) {
+            setStreak(streak + 1);
+          }
           setScore(score + 1);
           setNumJumps(0);
         }
@@ -179,7 +171,7 @@ function Sector({
 
   return (
     <RigidBody
-      ref={rigidBody}
+      ref={sectorRef}
       name="sector"
       colliders="trimesh"
       collisionGroups={interactionGroups(0, 1)}
@@ -190,6 +182,7 @@ function Sector({
       includeInvisible={true}
       onIntersectionEnter={handleIntersectionEnter}
       rotation={currentRotation}
+      ccd
     >
       <mesh
         geometry={createSectorGeometry(

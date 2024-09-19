@@ -24,13 +24,22 @@ const Scene = dynamic(() => import("./Scene"), {
 });
 
 export default function Game() {
-  const { isModalOpen, modalText, score } = useAppContext();
+  const { isModalOpen, modalText, score, numJumps, streak } = useAppContext();
 
   return (
     <div className="flex flex-col items-center w-screen h-screen">
       {!isModalOpen && (
         <div className="fixed top-12 left-1/2 transform -translate-x-1/2 text-6xl font-bold z-10">
           {score}
+        </div>
+      )}
+      {!isModalOpen && (
+        <div
+          className={`fixed bottom-12 left-1/2 transform -translate-x-1/2 text-6xl font-bold z-10 ${
+            numJumps >= 4 ? "text-red-500" : ""
+          }`}
+        >
+          {numJumps}
         </div>
       )}
       <Scene />

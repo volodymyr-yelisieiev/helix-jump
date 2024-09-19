@@ -35,7 +35,7 @@ export default function Scene() {
   return (
     <Canvas
       camera={{
-        position: [0, 10, 30],
+        position: [0, 15, 30],
         rotation: [-Math.PI / 6, 0, 0],
         fov: 60,
       }}
