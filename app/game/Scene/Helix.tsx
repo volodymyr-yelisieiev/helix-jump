@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback, memo } from "react";
 import { Cylinder } from "@react-three/drei";
 import { useAppContext } from "@/context/AppContext";
 import { generateSectors, createSectorGeometry } from "@/utils/geometry_utils";
@@ -13,12 +13,12 @@ import { useFrame } from "@react-three/fiber";
 const platformRadius = 10;
 const platformWidth = 2;
 const platformColor = "#67c1f3";
-const lossColor = "#34adef";
-const poleRadius = 5;
+const lossColor = "#ff535d";
+const poleRadius = 3;
 const poleColor = "#67c1f3";
-const numPoints = 32;
+const numPoints = 24;
 
-export default function Helix({
+function Helix({
   index,
   position,
   spaceBetween,
@@ -33,10 +33,10 @@ export default function Helix({
     () =>
       generateSectors(index, {
         platform: {
-          minSize: Math.PI / 4,
+          minSize: Math.PI / 8,
           maxSize: Math.PI / 2,
           minCount: 1,
-          maxCount: 3,
+          maxCount: 4,
         },
         loss: {
           minSize: Math.PI / 16,
@@ -46,7 +46,7 @@ export default function Helix({
         },
         hole: {
           minSize: Math.PI / 6,
-          maxSize: Math.PI / 4,
+          maxSize: Math.PI / 3,
           minCount: 1,
           maxCount: 2,
         },
@@ -112,17 +112,42 @@ function Sector({
     [number, number, number]
   >([0, 0, 0]);
 
-  const color =
-    type === "loss"
-      ? lossColor
-      : type === "platform"
-      ? platformColor
-      : "transparent";
-  const isVisible = type !== "hole";
+  const previousRotation = useRef<[number, number, number]>([0, 0, 0]);
+
+  const color = useMemo(
+    () =>
+      type === "loss"
+        ? lossColor
+        : type === "platform"
+        ? platformColor
+        : "transparent",
+    [type]
+  );
+
+  const isVisible = useMemo(() => type !== "hole", [type]);
+
+  const geometry = useMemo(
+    () =>
+      createSectorGeometry(
+        platformRadius,
+        platformWidth,
+        startAngle,
+        endAngle,
+        numPoints
+      ),
+    [startAngle, endAngle]
+  );
 
   useFrame(() => {
     if (index >= score) {
-      setCurrentRotation(rotation);
+      if (
+        rotation[0] !== previousRotation.current[0] ||
+        rotation[1] !== previousRotation.current[1] ||
+        rotation[2] !== previousRotation.current[2]
+      ) {
+        setCurrentRotation(rotation);
+        previousRotation.current = rotation;
+      }
     }
   });
 
@@ -173,11 +198,11 @@ function Sector({
     <RigidBody
       ref={sectorRef}
       name="sector"
-      colliders="trimesh"
+      colliders="hull"
       collisionGroups={interactionGroups(0, 1)}
       type={index >= score ? "fixed" : "dynamic"}
       mass={8}
-      scale={type === "hole" ? [1, 0.1, 1] : 1}
+      scale={type === "hole" ? [1, 0.01, 1] : 1}
       gravityScale={8}
       includeInvisible={true}
       onIntersectionEnter={handleIntersectionEnter}
@@ -185,13 +210,7 @@ function Sector({
       ccd
     >
       <mesh
-        geometry={createSectorGeometry(
-          platformRadius,
-          platformWidth,
-          startAngle,
-          endAngle,
-          numPoints
-        )}
+        geometry={geometry}
         rotation={[-Math.PI / 2, 0, 0]}
         visible={isVisible}
       >
@@ -200,3 +219,5 @@ function Sector({
     </RigidBody>
   );
 }
+
+export default memo(Helix);

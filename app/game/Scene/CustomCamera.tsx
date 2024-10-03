@@ -1,9 +1,9 @@
 import { useFrame, useThree } from "@react-three/fiber";
-import { useRef } from "react";
+import { memo, useRef } from "react";
 
 import { useAppContext } from "@/context/AppContext";
 
-export default function CustomCamera() {
+function CustomCamera() {
   const { ballRef } = useAppContext();
   const { camera } = useThree();
   const minBallY = useRef(15);
@@ -22,3 +22,5 @@ export default function CustomCamera() {
   });
   return null;
 }
+
+export default memo(CustomCamera);

@@ -25,6 +25,7 @@ interface AppContextType {
   setStreak: Dispatch<SetStateAction<number>>;
   rotation: [number, number, number];
   ballRef: MutableRefObject<RapierRigidBody | null>;
+  resetGame: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -68,6 +69,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({
   rotation,
   ballRef,
 }) => {
+  const resetGame = () => {
+    setScore(0);
+    setPreScore(0);
+    setNumJumps(0);
+    setStreak(0);
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -87,13 +95,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({
         setStreak,
         rotation,
         ballRef,
+        resetGame,
       }}
     >
       {children}
     </AppContext.Provider>
   );
 };
-
 export const useAppContext = (): AppContextType => {
   const context = useContext(AppContext);
   if (!context) {

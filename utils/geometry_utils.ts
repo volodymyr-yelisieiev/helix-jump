@@ -16,7 +16,7 @@ export function createSectorGeometry(
     true
   );
   const arcPoints = arcCurve.getPoints(
-    Math.round((numPoints * (endAngle - startAngle)) / (2 * Math.PI))
+    Math.ceil((numPoints * (endAngle - startAngle)) / (2 * Math.PI))
   );
   const shape = new THREE.Shape();
   shape.moveTo(0, 0);
@@ -47,6 +47,8 @@ export function generateSectors(
   index: number,
   config: PlatformConfig
 ): Sector[] {
+  const MAX_SECTOR_SIZE = Math.PI;
+
   if (index === 0) {
     return [
       [0, (2 * Math.PI) / 3 - Math.PI / 12, "platform"],
@@ -59,6 +61,7 @@ export function generateSectors(
       [2 * Math.PI - Math.PI / 4, 2 * Math.PI, "hole"],
     ];
   }
+
   const totalAngle = 2 * Math.PI;
   let currentAngle = 0;
 
@@ -70,17 +73,14 @@ export function generateSectors(
       getRandomInRange(sectorConfig.minCount, sectorConfig.maxCount + 1)
     );
 
-  const createSectors = (type: SectorType, count: number) => {
-    const sectorArray: Sector[] = [];
-    for (let i = 0; i < count; i++) {
-      const sectorSize = getRandomInRange(
-        config[type].minSize,
-        config[type].maxSize
+  const createSectors = (type: SectorType, count: number) =>
+    Array.from({ length: count }, () => {
+      let sectorSize = Math.min(
+        getRandomInRange(config[type].minSize, config[type].maxSize),
+        MAX_SECTOR_SIZE
       );
-      sectorArray.push([0, sectorSize, type]);
-    }
-    return sectorArray;
-  };
+      return [0, sectorSize, type] as Sector;
+    });
 
   const shuffleArray = <T>(array: T[]): T[] => {
     for (let i = array.length - 1; i > 0; i--) {
@@ -93,14 +93,34 @@ export function generateSectors(
   const ensureNoAdjacentSectors = (sectors: Sector[]): Sector[] => {
     for (let i = 1; i < sectors.length; i++) {
       if (sectors[i][2] === sectors[i - 1][2]) {
-        for (let j = i + 1; j < sectors.length; j++) {
-          if (sectors[j][2] !== sectors[i][2]) {
-            [sectors[i], sectors[j]] = [sectors[j], sectors[i]];
-            break;
-          }
+        const nextDiffIndex = sectors.findIndex(
+          (sec, j) => sec[2] !== sectors[i][2] && j > i
+        );
+        if (nextDiffIndex !== -1) {
+          [sectors[i], sectors[nextDiffIndex]] = [
+            sectors[nextDiffIndex],
+            sectors[i],
+          ];
         }
       }
     }
+
+    // Check for circular adjacency between first and last sectors
+    if (
+      sectors.length > 1 &&
+      sectors[0][2] === sectors[sectors.length - 1][2]
+    ) {
+      const nextDiffIndex = sectors.findIndex(
+        (sec, j) => sec[2] !== sectors[0][2] && j > 0
+      );
+      if (nextDiffIndex !== -1) {
+        [sectors[0], sectors[nextDiffIndex]] = [
+          sectors[nextDiffIndex],
+          sectors[0],
+        ];
+      }
+    }
+
     return sectors;
   };
 
@@ -108,28 +128,37 @@ export function generateSectors(
   const lossCount = randomizeSectorCount(config.loss);
   const holeCount = randomizeSectorCount(config.hole);
 
-  const platformSectors = createSectors("platform", platformCount);
-  const lossSectors = createSectors("loss", lossCount);
-  const holeSectors = createSectors("hole", holeCount);
+  const allSectors = [
+    ...createSectors("platform", platformCount),
+    ...createSectors("loss", lossCount),
+    ...createSectors("hole", holeCount),
+  ];
 
-  const allSectors = [...platformSectors, ...lossSectors, ...holeSectors];
-
-  const shuffledSectors = shuffleArray(allSectors);
-
-  const validSectors = ensureNoAdjacentSectors(shuffledSectors);
+  const validSectors = ensureNoAdjacentSectors(shuffleArray(allSectors));
 
   validSectors.forEach((sector) => {
-    const sectorSize = sector[1];
+    const sectorSize = Math.min(sector[1], MAX_SECTOR_SIZE);
     const nextAngle = Math.min(currentAngle + sectorSize, totalAngle);
     sector[0] = currentAngle;
     sector[1] = nextAngle;
     currentAngle = nextAngle;
-    if (currentAngle >= totalAngle) return;
   });
 
   if (currentAngle < totalAngle) {
     validSectors.push([currentAngle, totalAngle, "platform"]);
   }
 
-  return validSectors;
+  const flattenedSectors: Sector[] = validSectors.flatMap((sector) => {
+    const [startAngle, endAngle, sectorType] = sector;
+    if (endAngle - startAngle > MAX_SECTOR_SIZE) {
+      const middleAngle = startAngle + MAX_SECTOR_SIZE;
+      return [
+        [startAngle, middleAngle, sectorType],
+        [middleAngle, endAngle, sectorType],
+      ];
+    }
+    return [[startAngle, endAngle, sectorType]];
+  });
+
+  return flattenedSectors.filter((sector) => sector[1] - sector[0] >= 0.01);
 }
