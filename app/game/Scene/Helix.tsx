@@ -34,7 +34,7 @@ function Helix({
       generateSectors(index, {
         platform: {
           minSize: Math.PI / 8,
-          maxSize: Math.PI / 2,
+          maxSize: Math.PI / 4,
           minCount: 1,
           maxCount: 4,
         },
@@ -45,8 +45,8 @@ function Helix({
           maxCount: 2,
         },
         hole: {
-          minSize: Math.PI / 6,
-          maxSize: Math.PI / 3,
+          minSize: Math.PI / 8,
+          maxSize: Math.PI / 4,
           minCount: 1,
           maxCount: 2,
         },

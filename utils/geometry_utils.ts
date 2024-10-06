@@ -49,6 +49,31 @@ export function generateSectors(
 ): Sector[] {
   const MAX_SECTOR_SIZE = Math.PI;
 
+  const difficultyLevel = Math.floor(index / 20);
+
+  const scaleSize = (
+    baseSize: number,
+    targetSize: number,
+    difficulty: number
+  ) => baseSize + (targetSize - baseSize) * (1 - Math.pow(0.5, difficulty));
+
+  const adjustConfig = (sectorConfig: SectorConfig, closerToMin: boolean) => {
+    const baseMin = closerToMin ? sectorConfig.minSize : sectorConfig.maxSize;
+    const baseMax = closerToMin ? sectorConfig.maxSize : sectorConfig.minSize;
+
+    return {
+      ...sectorConfig,
+      minSize: scaleSize(baseMax, baseMin, difficultyLevel),
+      maxSize: scaleSize(baseMax, baseMin, difficultyLevel),
+    };
+  };
+
+  const adjustedConfig: PlatformConfig = {
+    platform: adjustConfig(config.platform, true),
+    loss: adjustConfig(config.loss, false),
+    hole: adjustConfig(config.hole, true),
+  };
+
   if (index === 0) {
     return [
       [0, (2 * Math.PI) / 3 - Math.PI / 12, "platform"],
@@ -76,7 +101,10 @@ export function generateSectors(
   const createSectors = (type: SectorType, count: number) =>
     Array.from({ length: count }, () => {
       let sectorSize = Math.min(
-        getRandomInRange(config[type].minSize, config[type].maxSize),
+        getRandomInRange(
+          adjustedConfig[type].minSize,
+          adjustedConfig[type].maxSize
+        ),
         MAX_SECTOR_SIZE
       );
       return [0, sectorSize, type] as Sector;
@@ -105,7 +133,6 @@ export function generateSectors(
       }
     }
 
-    // Check for circular adjacency between first and last sectors
     if (
       sectors.length > 1 &&
       sectors[0][2] === sectors[sectors.length - 1][2]
@@ -124,9 +151,9 @@ export function generateSectors(
     return sectors;
   };
 
-  const platformCount = randomizeSectorCount(config.platform);
-  const lossCount = randomizeSectorCount(config.loss);
-  const holeCount = randomizeSectorCount(config.hole);
+  const platformCount = randomizeSectorCount(adjustedConfig.platform);
+  const lossCount = randomizeSectorCount(adjustedConfig.loss);
+  const holeCount = randomizeSectorCount(adjustedConfig.hole);
 
   const allSectors = [
     ...createSectors("platform", platformCount),
